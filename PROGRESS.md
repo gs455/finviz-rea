@@ -93,5 +93,20 @@ Deploy run 39821059400: success (26 s). Local Node 22: 15/15 tests, secret scan 
 2. Sector/country/market cap source (SEC SIC codes or Finnhub profile); canvas pool; STALE-path probe and forced Yahoo check (`?src=yahoo`).
 3. Confirm the scheduled AH (21:30 UTC) and nightly (02:30 UTC) runs succeeded.
 
+## Run 8 (2026-10-22): Overview tab = DONE, version 0.5.0 live
+Deploys (all success, local Node 22 15/15 tests + secret scan before each push): 39823317906 (0.5.0), 39823545515 (AH change shown as percent), 39823827149 (Charts controls hidden on Overview).
+- `public/js/overview.js` (new) + tab/view wiring in `app.js` (`state.view`, `syncView`, `writeUrl`). Columns No., Ticker, Company, Sector, Industry, Country, Market Cap, P/E, Price, Change, Volume; the last 5 non-price data columns Sector/Industry/Country/Market Cap/P/E show "-" (no free source yet). 20 rows per page via `/api/screen` `r`/`n`. Sortable headers: Ticker, Company, Price, Change (AH change under an AH signal), Volume; click toggles asc/desc and syncs Order by / Asc-Desc; the dropdowns also drive it. Ticker click opens Charts with `t=<ticker>`. URL: `v=111` (Overview), `p` page, other fields as before; Charts stays default.
+- Verified live (fresh Chrome profiles): table renders STAK +59.00% ... KIDZ; ticker header click twice -> `o=-ticker`, dropdowns Ticker/Desc, first row XPEG; next page -> `p=2`; ticker click -> Charts, `t=TPET`, 1 cell. Light and dark readable. Screenshots: shots/live_overview_light.png, shots/live_overview_dark.png.
+- Observed incidentally: the Charts status line showed `alpaca · STALE` once, so the STALE path of `/api/bars` is exercised live (age > 30 s, served and revalidated).
+- Bugs found and fixed during the run: AH change printed raw (59 instead of +59.00%); Charts controls row stayed visible on Overview (`[hidden]` overridden by flex).
+- Note: `live_shot.mjs dark` no longer ends up dark (theme read as light after load; hub likely rewrites `armanai-theme`); the dark shot was taken by clicking the theme button via `--eval`.
+- Total shows 200 for AH signals (signal cap), not the full match count.
+
+### Not done / next run (run 9)
+1. Sector/industry/country/market cap/P/E source; make those columns sortable once data exists.
+2. Cold-start CPU mitigation for /api/screen (Cache API keyed by etag + query, or precomputed signal lists), canvas pool, forced Yahoo (`?src=yahoo`) probe: not started this run.
+3. Scheduled AH (21:30 UTC) and nightly (02:30 UTC) runs: not yet happened at the time of this run; confirm next run.
+4. Fix `live_shot.mjs dark` preset.
+
 ## BLOCKERS
 None.
