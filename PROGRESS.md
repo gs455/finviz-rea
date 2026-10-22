@@ -64,5 +64,20 @@ Evidence: `shots/c_phase2.png` (fv-rea.pages.dev with proxy header, headless Chr
 3. **Hub wiring (card + worker edit in gs455/hub-sites; add `/finviz-rea` to APP_ORIGINS and APP_DERIVED_KEY_PREFIXES) since Phase 2 is PASS.** Only in the final wiring run, per decision 6.
 4. Watch the first scheduled AH run (21:30 UTC) and the nightly (02:30 UTC): confirm both succeed on the cron path.
 
+## Run 6 (2026-10-22): RELEASE / hub wiring = DONE
+Live: https://armanai.pages.dev/finviz-rea/ (version 0.3.0). Hub change: gs455/hub-sites commit "armanai: add /finviz-rea proxy (derived key) + hub card" (APP_ORIGINS, APP_DERIVED_KEY_PREFIXES, bare-prefix redirect list, seed card "Finviz Rea" in Finances, README + CHANGELOG). The hub deploys by GitHub Action on push (Deploy armanai, run 39817107899: success), not by box wrangler.
+Baseline vs after (signed in, HTTP code + size + title); identical except the hub index, which grew by 529 bytes (the new card):
+`/` 200 175988 -> 176517; /finviz/ 200 18739; /networth/ 200 6696; /muse-tax-calc/ 200 24271; /devin-wiki/ 200 1080; /tweets/ 200 3119; /crypto/ 200 20538; /drawdown/ 200 9607; /book-library/ 200 504; /mags/ 200 2577; /claude/ 200 12489; /health/ 200 3889; /usage/ 200 65909; /grok/ 200 5993; /GrokTaxCalc/ 200 212980; /todo/ 200 1296; /api/model 200 9678: all unchanged.
+Signed out: /finviz-rea/ -> 302 to /__login?next=... Signed in: app HTML 200, /api/screen 200, /api/bars 200, changelog.json, history.json, js, css all 200 (all app URLs are relative, no base-path fix needed).
+Screenshots through the live hub path: `shots/live_light.png`, `shots/live_dark.png` (1400x1000, Charts grid STAK/HTCO/NCPL/QSU/USGO/SNAL/AKAN/CRDF), `shots/live_menu.png` (menu open). Script: `scripts/live_shot.mjs` (Node 22).
+**Hub card in the LIVE KV model NOT added**: the signed-in hub loads /api/model (KV), the seed row is only the fallback, so the card shows only after the KV model is updated (additive PUT of the latest model, per hub README "Publishing a hub row"). See next steps.
+- Menu check: Changelog / Code history / version shown. The menu showed "Version 0.2.0" before this release; 0.3.0 after the deploy.
+
+## Next run (run 7)
+1. Add the Finviz Rea row to the published KV model via authenticated /api/model (fetch, append to Finances, PUT, preserve everything).
+2. UI gaps: Filters panel, STALE probe, forced Yahoo (`?src=yahoo`), canvas pool, hover crosshair; theme should use the hub-wide `armanai-theme` localStorage key.
+3. Sector/country/market cap source; Overview tab.
+4. Confirm the first scheduled AH (21:30 UTC) and nightly (02:30 UTC) runs succeeded.
+
 ## BLOCKERS
 None.

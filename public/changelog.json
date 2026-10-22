@@ -32,6 +32,19 @@
         "Presets are stored in this browser (localStorage); default preset is Top Gainers AH with price > $1 and avg volume > 50K",
         "#N / Total comes from the real result count; tooltip shows company, exchange, regular close, AH change and average volume (sector, country and market cap have no free source yet)"
       ]
+    },
+    {
+      "version": "0.3.0",
+      "date": "2026-10-22",
+      "brief": [
+        "Released: now served at armanai.pages.dev/finviz-rea behind the hub sign-in",
+        "Hub card added"
+      ],
+      "full": [
+        "Hub worker proxies /finviz-rea to fv-rea with the derived proxy key",
+        "All asset and API URLs are relative, so they resolve under the /finviz-rea prefix",
+        "scripts/live_shot.mjs takes signed-in screenshots of the live app"
+      ]
     }
   ]
 }
