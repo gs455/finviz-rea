@@ -4,6 +4,8 @@ import { supportResistance, trendLines } from "./indicators.js";
 
 const AXIS_W = 52, TIME_H = 16, VOL_FRAC = 0.2;
 
+const fmtPrice = (p) => p.toFixed(p < 10 ? 3 : 2);
+
 export function themeColors() {
   const css = getComputedStyle(document.documentElement);
   const get = (n) => css.getPropertyValue(n).trim();
@@ -12,7 +14,22 @@ export function themeColors() {
 }
 
 /** Draw bars (columnar {t,o,h,l,c,v}) onto a canvas; returns geometry used for hover lookups. */
-export function drawChart(canvas, bars, { overlay = "none", intraday = true } = {}) {
+export const SMA_LINES = [[50, "#e08a00"], [100, "#9b59d0"], [200, "#0aa5b5"]];
+
+/** Simple moving average over closes; entries before the first full window are null. */
+export function smaSeries(closes, period) {
+  const out = new Array(closes.length).fill(null);
+  let sum = 0;
+  for (let i = 0; i < closes.length; i++) {
+    sum += closes[i];
+    if (i >= period) sum -= closes[i - period];
+    if (i >= period - 1) out[i] = sum / period;
+  }
+  return out;
+}
+
+/** regClose: regular-session close drawn as a dotted line when it differs from the last bar. */
+export function drawChart(canvas, bars, { overlay = "none", intraday = true, regClose = null } = {}) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -62,6 +79,23 @@ export function drawChart(canvas, bars, { overlay = "none", intraday = true } = 
     if (vmax) { const vh = ((bars.v[i] || 0) / vmax) * volH; g.globalAlpha = 0.45; g.fillRect(x(i) - bodyW / 2, volTop + volH - vh, bodyW, vh); g.globalAlpha = 1; }
   }
 
+  // SMA lines over the bars of this timeframe; a line is hidden when there are fewer bars than its period.
+  const legend = [];
+  g.setLineDash([]); g.lineWidth = 1.2;
+  for (const [period, color] of SMA_LINES) {
+    if (n < period) continue;
+    const values = smaSeries(bars.c, period);
+    g.strokeStyle = color; g.beginPath();
+    let started = false;
+    for (let i = 0; i < n; i++) {
+      if (values[i] == null) continue;
+      if (started) g.lineTo(x(i), y(values[i])); else { g.moveTo(x(i), y(values[i])); started = true; }
+    }
+    g.stroke();
+    legend.push({ text: `SMA ${period} \u00b7 ${values[n - 1].toFixed(values[n - 1] < 1 ? 4 : 2)}`, color });
+  }
+  g.lineWidth = 1;
+
   // Tech. Analysis overlays.
   g.lineWidth = 1; g.setLineDash([4, 3]); g.strokeStyle = col.accent; g.fillStyle = col.accent;
   if (overlay === "sr") {
@@ -75,6 +109,23 @@ export function drawChart(canvas, bars, { overlay = "none", intraday = true } = 
     }
   }
   g.setLineDash([]);
+
+  // Legend, top-left.
+  g.font = "10px system-ui, sans-serif"; g.textAlign = "left"; g.textBaseline = "top";
+  legend.forEach((item, k) => { g.fillStyle = item.color; g.fillText(item.text, 6, 4 + k * 12); });
+
+  // Regular-close dotted line and last-price badge on the price axis.
+  const lastClose = bars.c[n - 1];
+  const badge = (price, fill, textColor) => {
+    const yy = Math.min(Math.max(y(price), 7), priceH - 7);
+    g.fillStyle = fill; g.fillRect(plotW, yy - 7, AXIS_W, 14);
+    g.fillStyle = textColor; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(fmtPrice(price), plotW + 4, yy);
+  };
+  if (regClose != null && Math.abs(regClose - lastClose) > 1e-9 && regClose >= lo && regClose <= hi) {
+    g.strokeStyle = col.muted; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(0, y(regClose)); g.lineTo(plotW, y(regClose)); g.stroke(); g.setLineDash([]);
+    badge(regClose, col.muted, col.bg);
+  }
+  badge(lastClose, bars.c[n - 1] >= bars.o[n - 1] ? col.up : col.down, "#fff");
 
   // Time axis: label the first bar of each day (intraday) or every ~6th label slot.
   g.fillStyle = col.muted; g.textBaseline = "top"; g.textAlign = "left";

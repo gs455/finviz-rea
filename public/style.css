@@ -44,3 +44,11 @@ label { color:var(--muted); display:inline-flex; gap:4px; align-items:center; }
 .placeholder { padding:40px; color:var(--muted); text-align:center; }
 @media (max-width:700px) { .grid { grid-template-columns:1fr; } }
 .num { width:64px; }
+.filterbar { position:relative; }
+.filters-panel { position:absolute; left:8px; top:100%; z-index:25; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; display:flex; flex-wrap:wrap; gap:10px; width:min(560px, 94vw); box-shadow:0 4px 14px #0003; }
+.filters-panel[hidden] { display:none; }
+.filters-panel fieldset { border:1px solid var(--line); border-radius:4px; display:flex; flex-direction:column; gap:5px; flex:1; min-width:210px; }
+.filters-panel legend { color:var(--muted); font-size:11px; padding:0 4px; }
+.filters-panel label { justify-content:space-between; }
+.panel-actions { width:100%; display:flex; justify-content:flex-end; }
+.cell-head .when { color:var(--text); }

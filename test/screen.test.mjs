@@ -36,3 +36,18 @@ test("order and paging", () => {
   assert.equal(r.total, 4);
   assert.deepEqual(screen(snap, null, { o: "nonsense" }).ignored, ["o=nonsense"]);
 });
+
+test("RSI, SMA relation and exchange filters", () => {
+  const rich = decode(writeSnapshot({
+    asof: "2026-10-21", built: "x", symbols: ["AAA", "BBB", "CCC"], names: ["a", "b", "c"], exchanges: ["NYSE", "NASDAQ", "NASDAQ"], etf: [0, 0, 0],
+    columns: { price: f32(10, 5, 8), change: f32(1, 2, 3), volume: f32(1, 1, 1), avgVol: f32(1, 1, 1), rsi: f32(25, 50, 75),
+      sma20: f32(9, 6, 7), sma50: f32(9, 6, 7), sma200: f32(NaN, 6, 7) },
+  }));
+  const names = (f) => screen(rich, null, { f }).rows.map((x) => x[0]);
+  assert.deepEqual(names("ta_rsi_u30"), ["AAA"]);
+  assert.deepEqual(names("ta_rsi_o70"), ["CCC"]);
+  assert.deepEqual(names("ta_sma50_pa"), ["AAA", "CCC"]);
+  assert.deepEqual(names("ta_sma200_pb"), ["BBB"]);
+  assert.deepEqual(names("exch_nasd"), ["BBB", "CCC"]);
+  assert.deepEqual(screen(rich, null, { f: "ta_sma50_pa", s: "ta_topgainers" }).rows.map((x) => x[0]), ["CCC", "AAA"]);
+});

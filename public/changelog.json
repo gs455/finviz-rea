@@ -45,6 +45,24 @@
         "All asset and API URLs are relative, so they resolve under the /finviz-rea prefix",
         "scripts/live_shot.mjs takes signed-in screenshots of the live app"
       ]
+    },
+    {
+      "version": "0.4.0",
+      "date": "2026-10-22",
+      "brief": [
+        "Charts: SMA 50/100/200 lines with a legend, per-cell OHLC header, last-price badge and regular-close line",
+        "Filters panel (exchange, price, avg volume, change, RSI, SMA relations) with URL parameters and Reset",
+        "AH values name their session; theme shares the hub-wide armanai-theme key"
+      ],
+      "full": [
+        "SMA lines are computed over the bars of the selected timeframe and hidden when there are fewer bars than the period",
+        "Cell header shows the last bar time in ET, O/H/L/C, bar volume, window change and AH change",
+        "Price axis badge for the last close; dotted regular-close line plus badge when the AH price differs",
+        "/api/screen: new filters ta_rsi_o|u, ta_sma20|50|200_pa|pb (price above/below SMA) and exch_nasd|nyse|amex|arca; rsi and sma columns in the response",
+        "Filters panel state is written to the URL (pmin, pmax, vmin, ex, cmin, cmax, rmin, rmax, sma20, sma50, sma200, s, o, t, tf)",
+        "AH labels read AH after today's close, otherwise AH (Oct 21); the Top Gainers/Losers AH signal names follow the same rule",
+        "Theme is read from and written to localStorage armanai-theme (light default)"
+      ]
     }
   ]
 }
