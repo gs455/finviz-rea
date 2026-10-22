@@ -48,3 +48,9 @@ None. (Alpaca keys arrived; Pages write works.)
 - 2026-10-21 run 1: plan update + Phase 0 (this file's first version).
 - 2026-10-22 run 2: Alpaca verified, repo + Pages project + secrets, Phase 1 v0.1.0 deployed (UI not yet browser-checked).
 - 2026-10-22 run 4: CI fix (explicit test glob in both workflows, package.json added). Local Node 22: 11/11 tests pass, nightly dry run (--limit 300, --out) OK: 291 rows, 55,664 bytes. R2 bucket finviz-rea-data exists; CLOUDFLARE_R2_TOKEN secret is set.
+- 2026-10-22 run 4 (cont.): Deploy run 39728083251 passed. Nightly run 39728131105 passed (2m38s): asof 2026-10-21, 11,115 rows of 11,279 universe symbols, snapshot 2,112,192 bytes, 340 Alpaca calls, 2.95M bars, 145 s, no warnings. R2 finviz-rea-data holds snapshot/latest.bin, snapshot/meta.json, snapshot/prev/2026-10-21.bin.
+
+## Next run (run 5)
+1. Read snapshot from R2 in a Pages Function (R2 binding on fv-rea: needs adding via Pages API/settings; check) and expose /api/screen (filter + order, Top Gainers AH price>1, avgVol>50K) driving the Charts grid.
+2. Wire presets/Order/Signal in the UI; then Overview tab. No hub wiring until Phase 2 works end to end.
+3. Remaining run-3 gaps: browser check of UI, STALE path, Yahoo fallback force.
