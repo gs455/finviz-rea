@@ -1,0 +1,60 @@
+
+payload: 4 symbols x 640 bars = 2560 bars, 268 KB JSON
+bars parse only (4x640)                              first    1.98  median   1.24  p95   1.85  max   2.98 ms
+bars parse + normalize (4x640)                       first    3.21  median   1.75  p95   2.38  max   3.21 ms
+bars parse + normalize + stringify (4x640)           first    3.22  median   2.81  p95    3.4  max   4.85 ms
+
+payload: 8 symbols x 640 bars = 5120 bars, 546 KB JSON
+bars parse only (8x640)                              first     3.2  median   2.56  p95   3.39  max  11.96 ms
+bars parse + normalize (8x640)                       first    4.89  median    3.6  p95   4.61  max   5.95 ms
+bars parse + normalize + stringify (8x640)           first    6.97  median   6.09  p95   8.18  max  11.33 ms
+
+payload: 4 symbols x 350 bars = 1400 bars, 149 KB JSON
+bars parse only (4x350)                              first    0.88  median   0.76  p95   0.91  max    1.4 ms
+bars parse + normalize (4x350)                       first    1.09  median   1.02  p95   1.18  max    1.7 ms
+bars parse + normalize + stringify (4x350)           first    1.73  median   1.56  p95   1.92  max    2.6 ms
+
+payload: 8 symbols x 350 bars = 2800 bars, 295 KB JSON
+bars parse only (8x350)                              first    1.68  median   1.35  p95   1.76  max   2.47 ms
+bars parse + normalize (8x350)                       first    2.63  median    1.9  p95   2.31  max   2.82 ms
+bars parse + normalize + stringify (8x350)           first     3.2  median    3.2  p95   6.32  max  11.26 ms
+
+payload: 44 symbols x 640 bars = 28160 bars, 2990 KB JSON
+bars parse only (44x640)                             first   29.49  median  15.06  p95  21.07  max  29.49 ms
+bars parse + normalize (44x640)                      first   22.92  median   20.4  p95  29.25  max   38.8 ms
+bars parse + normalize + stringify (44x640)          first   36.32  median  32.03  p95   35.5  max  53.34 ms
+
+snapshot: 5600 rows, binary 1.52 MB (+ 58 KB header), JSON 2.63 MB
+screener binary (typed-array views, header parse)    first    4.88  median   2.12  p95   2.87  max     10 ms
+screener JSON.parse of the whole snapshot            first   29.99  median  15.85  p95  19.31  max  30.23 ms
+
+
+payload: 4 symbols x 640 bars = 2560 bars, 268 KB JSON
+bars parse only (4x640)                              first    1.89  median   1.22  p95   1.74  max   3.03 ms
+bars parse + normalize (4x640)                       first    2.95  median   1.69  p95   2.71  max   3.59 ms
+bars parse + normalize + stringify (4x640)           first       3  median   2.67  p95   3.14  max   4.09 ms
+
+payload: 8 symbols x 640 bars = 5120 bars, 546 KB JSON
+bars parse only (8x640)                              first    2.98  median   2.45  p95   3.69  max   4.87 ms
+bars parse + normalize (8x640)                       first    4.71  median   3.18  p95   5.06  max   7.35 ms
+bars parse + normalize + stringify (8x640)           first    6.65  median   5.56  p95   6.67  max   8.61 ms
+
+payload: 4 symbols x 350 bars = 1400 bars, 149 KB JSON
+bars parse only (4x350)                              first     0.8  median   0.66  p95   0.94  max   1.26 ms
+bars parse + normalize (4x350)                       first    0.92  median   0.91  p95   1.12  max   1.55 ms
+bars parse + normalize + stringify (4x350)           first    1.53  median   1.47  p95   2.05  max   3.03 ms
+
+payload: 8 symbols x 350 bars = 2800 bars, 295 KB JSON
+bars parse only (8x350)                              first    1.61  median   1.28  p95   1.76  max   2.38 ms
+bars parse + normalize (8x350)                       first    2.66  median   1.73  p95   2.22  max   2.87 ms
+bars parse + normalize + stringify (8x350)           first    3.09  median   2.86  p95   3.47  max   4.55 ms
+
+payload: 44 symbols x 640 bars = 28160 bars, 2990 KB JSON
+bars parse only (44x640)                             first   30.47  median  13.65  p95   16.7  max  30.47 ms
+bars parse + normalize (44x640)                      first   18.19  median  19.37  p95  22.69  max  43.73 ms
+bars parse + normalize + stringify (44x640)          first   32.43  median  29.89  p95   35.2  max  49.12 ms
+
+snapshot: 5600 rows, binary 1.52 MB (+ 58 KB header), JSON 2.63 MB
+screener binary (typed-array views, header parse)    first    4.92  median   1.88  p95   2.22  max   4.92 ms
+screener JSON.parse of the whole snapshot            first   18.61  median  14.81  p95  16.24  max  18.61 ms
+
