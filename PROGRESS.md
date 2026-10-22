@@ -78,5 +78,20 @@ Live KV model: Finviz Rea row appended to Finances via authenticated PUT /api/mo
 2. Sector/country/market cap source; Overview tab.
 3. Confirm the first scheduled AH (21:30 UTC) and nightly (02:30 UTC) runs succeeded.
 
+## Run 7 (2026-10-22): Charts spec gaps = DONE, version 0.4.0 live
+Deploy run 39821059400: success (26 s). Local Node 22: 15/15 tests, secret scan clean, before the push.
+- Cells: SMA 50/100/200 lines over the fetched bars of the timeframe (hidden when bars < period; M has no SMA 200) with a top-left legend ("SMA 50 · 1.63"), header with last-bar ET time, O/H/L/C, bar Vol, window change and AH change, last-close badge on the price axis, dotted regular-close line + grey badge when the AH price differs. Rotated timeframe label skipped (optional).
+- Filters panel (Filters button, Descriptive / Technical groups): exchange, price min/max, avg volume, change min/max, RSI min/max, price vs SMA 20/50/200 above/below; Reset. URL params: s, o, t, tf, pmin, pmax, vmin, ex, cmin, cmax, rmin, rmax, sma20, sma50, sma200 (only non-default ones written). /api/screen new filters: `ta_rsi_o|u`, `ta_sma{20,50,200}_pa|pb`, `exch_nasd|nyse|amex|arca`; response cols now include rsi, sma20, sma50, sma200 (tests added).
+- AH staleness: label is "AH" only after today's 16:00 ET close with today's AH session, otherwise "AH (Oct 21)"; the signal dropdown says "Top Gainers AH (Oct 21)".
+- Theme: localStorage `armanai-theme` (light default; verified dark preset through it).
+- Verified on the LIVE hub path with fresh Chrome profiles (`scripts/live_shot.mjs`, now with `--eval`/`--text`): Changelog dialog shows Brief and Full tabs, versions oldest first 0.1.0..0.4.0, menu shows "Version 0.4.0"; Code history dialog lists 17 commits oldest first with 79 per-file diffs (details expand); Tech. Analysis cycles none -> support/resistance -> trend lines (screenshots differ); Filters panel max price 3 -> URL `?pmax=3`, grid re-screens (STAK, HTCO, NCPL, SNAL, ...).
+- Screenshots: shots/live_light.png, live_dark.png, live_changelog.png, live_history.png, live_ta_sr.png, live_ta_tl.png, live_filters.png.
+- Observed: the "AH Oct 21" session is the last one with data at 13:00 ET on Oct 22, so labels read AH (Oct 21) as intended. Cells with few bars (USGO, HTCO) draw wide candles; fine.
+
+### Not done / next run (run 8)
+1. Overview tab (compact one-line rows, ellipsis + hover title, sortable, paged, from /api/screen: columns ticker, company, exchange, price, change, volume, avg vol, RSI, SMA50/200 are all in the response already). Needs an api `r`/`n` paging loop; 200-row cap applies to signals only.
+2. Sector/country/market cap source (SEC SIC codes or Finnhub profile); canvas pool; STALE-path probe and forced Yahoo check (`?src=yahoo`).
+3. Confirm the scheduled AH (21:30 UTC) and nightly (02:30 UTC) runs succeeded.
+
 ## BLOCKERS
 None.
