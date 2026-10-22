@@ -5,7 +5,8 @@ const TABS = ["Overview", "Valuation", "Financial", "Ownership", "Performance", 
   "Tickers", "Basic", "TA", "News", "Snapshot", "Maps", "Stats"];
 const TIMEFRAMES = ["1M", "3M", "5M", "15M", "30M", "1H", "D", "W", "M"];
 const OVERLAYS = [["none", "none"], ["sr", "support/resistance"], ["trend", "trend lines"]];
-const BARS_PER_TICKER = { "1M": 1000, "3M": 600, "5M": 600, "15M": 400, "30M": 300, "1H": 300, "D": 290, "W": 220, "M": 120 };
+// Must match estimateBars() in functions/lib/timeframes.js (upper bound of bars per ticker).
+const BARS_PER_TICKER = { "1M": 1920, "3M": 1280, "5M": 768, "15M": 512, "30M": 480, "1H": 464, "D": 286, "W": 215, "M": 122 };
 const MAX_BARS_PER_CALL = 3000, MAX_TICKERS_PER_CALL = 8;
 
 const $ = (id) => document.getElementById(id);
