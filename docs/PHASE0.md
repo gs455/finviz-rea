@@ -7,7 +7,7 @@ Scope of this run: verify limits, test a data source with a handful of calls, me
 | Gate | Verdict | One line |
 |---|---|---|
 | CPU | **GO, with two design changes** | `/api/bars` normalize fits if a call carries at most ~2,800 bars (8 tickers x 350 bars, ~3 ms median) or 4 tickers x 640 bars (~2.8 ms). The snapshot **must** be the binary format (~2 ms); plain JSON (~15 ms) is out. |
-| Data source | **CONDITIONAL GO** | Alpaca free plan facts are confirmed from the docs, but **no Alpaca keys are on the box**, so Alpaca itself is untested. The Yahoo fallback works today (all 7 calls OK, full 04:00-20:00 ET coverage). Phase 1 can start with the Yahoo adapter and add Alpaca when keys arrive. |
+| Data source | **GO (Alpaca primary, Yahoo fallback)** | Alpaca verified in run 2 with real keys (section below). |
 | Limits | **GO** | Every figure in PLAN section 9 checked against official docs; none is worse than assumed. Three corrections (below). |
 | Credentials | **GO for repo + Pages + R2 binding work, with notes** | `gh` can create the repo (`repo`, `workflow` scopes). `CLOUDFLARE_PAGES_TOKEN` is valid and lists Pages projects, but cannot read the account list or R2/KV. `CF_R2_TOKEN` (found in the environment) lists accounts, R2 buckets, KV and Workers; R2 is already enabled on the account. Bucket creation and Pages deploy were not tried (read-only run). |
 
@@ -104,3 +104,17 @@ What this means for the next runs:
 - Alpaca keys missing (the only item that needs Arman). Soft blocker: the Yahoo adapter covers Phase 1 development, but the primary source, its 3-minute bars, its pre/post coverage and its real latency stay unmeasured.
 - Live Cache API probe on the real Pages project (docs say it works).
 - Hub-wiring dry run (Phase 0 list in the plan): deferred, it is only allowed in the final wiring run.
+
+## Alpaca verification (run 2, 2026-10-22 04:46 UTC, after hours)
+
+Three calls, all HTTP 200, headers `APCA-API-KEY-ID` / `APCA-API-SECRET-KEY` (values never logged). Samples in `docs/samples/alpaca_*.json`.
+
+| Call | Latency | Size | Result |
+|---|---|---|---|
+| 3Min, feed=sip, end = now-16 min, 5 symbols (STAK NCPL QS AAPL F), 5 days, limit=10000 | 0.31 s | 374 KB | AAPL 947, F 760, NCPL 932, QS 743, STAK 349 bars; 04:00-19:57 ET incl. pre/post; no `next_page_token` |
+| 3Min, feed=iex, same | 0.27 s | 138 KB | AAPL 391, F 395, QS 363, NCPL 218, STAK 24 bars: **IEX is far too thin for small caps** (STAK 24 vs 349) |
+| 1Day, feed=sip, 5 symbols, 30 days | 0.23 s | 11.6 KB | 22 bars per symbol, includes the current day's bar |
+
+Findings: SIP with an end bound of now-16 min works on the free plan; `3Min` native; ~100 B per bar raw JSON (~40 B after normalizing to columnar arrays). Bars exist only where trades happened (thin tickers have gaps; the renderer must handle missing slots). IEX is only for the Phase 5 real-time tail. Daily multi-symbol call is cheap: ~2.3 KB per symbol-month, so a 5,600-symbol nightly job is ~100 calls of 50 symbols (well under 200/min).
+
+CPU bench on the Alpaca-shaped payload (`scripts/bench/alpaca_bench.mjs`, 5 symbols x ~750 bars = 3,731 bars): parse + normalize + stringify **median 3.95 ms, p95 5.2 ms** on Node (x2 for Workers ~ 8-10 ms): within budget only with the ~3,000-bar cap per call; keep the 8-ticker/3,000-bar rule and keep normalization minimal.

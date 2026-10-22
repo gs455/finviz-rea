@@ -58,3 +58,4 @@ snapshot: 5600 rows, binary 1.52 MB (+ 58 KB header), JSON 2.63 MB
 screener binary (typed-array views, header parse)    first    4.92  median   1.88  p95   2.22  max   4.92 ms
 screener JSON.parse of the whole snapshot            first   18.61  median  14.81  p95  16.24  max  18.61 ms
 
+payload 374154 B -> 152406 B; median 3.95 ms, p95 5.20 ms

@@ -1,18 +1,4 @@
-# dependencies and build output
 node_modules/
 .wrangler/
-
-# secrets: never commit
-.env
-.env.*
-*.key
-*.pem
 .dev.vars
-secrets/
-
-# local run logs from the orchestration harness
-runs/
-
-# editor / OS
-.DS_Store
-*.log
+dist/
