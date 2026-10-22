@@ -42,3 +42,22 @@ export async function dailyBars(symbols, start, env) {
   } while (pageToken);
   return out;
 }
+
+/** Raw bars of any timeframe for `symbols` between `start` and `end` (ISO instants). Returns { SYM: [{t,o,h,l,c,v}] }. */
+export async function barsBetween(symbols, timeframe, start, end, env) {
+  const headers = { "APCA-API-KEY-ID": env.ALPACA_API_KEY_ID, "APCA-API-SECRET-KEY": env.ALPACA_API_SECRET_KEY };
+  const out = {};
+  let pageToken = null;
+  do {
+    const params = new URLSearchParams({ symbols: symbols.join(","), timeframe, start, end, limit: "10000", adjustment: "split", feed: "sip" });
+    if (pageToken) params.set("page_token", pageToken);
+    const json = await call(`${BASE}?${params}`, headers);
+    stats.calls++;
+    for (const [sym, bars] of Object.entries(json.bars || {})) {
+      (out[sym] ||= []).push(...bars);
+      stats.bars += bars.length;
+    }
+    pageToken = json.next_page_token;
+  } while (pageToken);
+  return out;
+}

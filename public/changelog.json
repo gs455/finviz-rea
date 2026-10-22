@@ -17,6 +17,21 @@
         "All 15 tabs shown; only Charts is built, the rest are placeholders",
         "Hub gate through the X-Hub-Proxy-Key header; direct visits go to the hub"
       ]
+    },
+    {
+      "version": "0.2.0",
+      "date": "2026-10-22",
+      "brief": [
+        "Screener: /api/screen drives the Charts grid (Top Gainers AH, price and average volume filters, order, presets)",
+        "After-hours job writes ah/latest.bin"
+      ],
+      "full": [
+        "/api/screen reads snapshot/latest.bin and ah/latest.bin from R2 (cached per isolate by etag), filters, ranks, orders and pages them, with Server-Timing",
+        "jobs/ah.mjs + ah.yml: 15-minute SIP bars after 16:00 ET for the whole universe, regular close from the daily bar, one small object in R2",
+        "Signal dropdown (Top Gainers/Losers AH, Top Gainers/Losers, Most Active), Order by with Asc/Desc, price and avg-volume filters, tickers box",
+        "Presets are stored in this browser (localStorage); default preset is Top Gainers AH with price > $1 and avg volume > 50K",
+        "#N / Total comes from the real result count; tooltip shows company, exchange, regular close, AH change and average volume (sector, country and market cap have no free source yet)"
+      ]
     }
   ]
 }

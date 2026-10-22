@@ -12,7 +12,8 @@ const MAX_BARS_PER_CALL = 3000, MAX_TICKERS_PER_CALL = 8;
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const state = {
-  tickers: (params.get("t") || "AAPL,F,QS,NCPL,STAK,MSFT,NVDA,TSLA,AMD").toUpperCase().split(/[\s,]+/).filter(Boolean),
+  tickers: [], rows: new Map(), total: 0, asofNote: "", screenError: "",
+  query: { s: "ta_topgainers_ah", o: "", minPrice: "1", minAvgVol: "50", t: (params.get("t") || "") },
   tf: TIMEFRAMES.includes(params.get("tf")) ? params.get("tf") : "3M",
   overlay: 0, page: 0, perPage: 8, refreshTimer: null,
 };
@@ -42,10 +43,7 @@ function buildChrome() {
   $("tf").innerHTML = TIMEFRAMES.map((t) => `<button data-tf="${t}">${t}</button>`).join("");
   $("tf").onclick = (e) => { if (e.target.dataset.tf) { state.tf = e.target.dataset.tf; syncControls(); render(); } };
   $("ta-btn").onclick = () => { state.overlay = (state.overlay + 1) % OVERLAYS.length; syncControls(); redrawAll(); };
-  $("tickers").value = state.tickers.join(", ");
-  $("tickers").onchange = () => {
-    state.tickers = $("tickers").value.toUpperCase().split(/[\s,]+/).filter(Boolean); state.page = 0; render();
-  };
+  buildScreenControls();
   $("layout").onchange = () => { state.perPage = Number($("layout").value.split("x")[1]) * 2; state.page = 0; render(); };
   $("refresh").onchange = () => {
     clearInterval(state.refreshTimer);
@@ -75,6 +73,59 @@ function syncControls() {
   $("ta-btn").textContent = `Tech. Analysis: ${OVERLAYS[state.overlay][1]}`;
 }
 
+// ---------- screener (/api/screen) ----------
+const DEFAULT_PRESETS = { "Top Gainers AH (price>$1, avg vol>50K)": { s: "ta_topgainers_ah", o: "", minPrice: "1", minAvgVol: "50", t: "" } };
+const loadPresets = () => ({ ...DEFAULT_PRESETS, ...JSON.parse(localStorage.getItem("fv-presets") || "{}") });
+const SIGNALS = [["", "None (all stocks)"], ["ta_topgainers_ah", "Top Gainers AH"], ["ta_toplosers_ah", "Top Losers AH"],
+  ["ta_topgainers", "Top Gainers"], ["ta_toplosers", "Top Losers"], ["ta_mostactive", "Most Active"]];
+const ORDERS = [["", "None"], ["ticker", "Ticker"], ["price", "Price"], ["change", "Change"], ["ahChange", "AH change"], ["volume", "Volume"], ["avgVolume", "Avg volume"]];
+
+function buildScreenControls() {
+  $("signal").innerHTML = SIGNALS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+  $("order").innerHTML = ORDERS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+  fillPresets();
+  const apply = (q) => { Object.assign(state.query, q); syncScreenControls(); state.page = 0; runScreen(); };
+  $("preset").onchange = () => { const p = loadPresets()[$("preset").value]; if (p) apply(p); };
+  $("preset-save").onclick = () => {
+    const name = prompt("Preset name"); if (!name) return;
+    const saved = JSON.parse(localStorage.getItem("fv-presets") || "{}"); saved[name] = { ...state.query };
+    localStorage.setItem("fv-presets", JSON.stringify(saved)); fillPresets(name);
+  };
+  const read = () => apply({ s: $("signal").value, o: $("order").value, minPrice: $("min-price").value, minAvgVol: $("min-avgvol").value,
+    t: $("tickers").value });
+  for (const id of ["signal", "order", "min-price", "min-avgvol", "tickers"]) $(id).onchange = read;
+  $("dir").onchange = read;
+  syncScreenControls();
+}
+function fillPresets(selected) {
+  const names = Object.keys(loadPresets());
+  $("preset").innerHTML = names.map((n) => `<option>${esc(n)}</option>`).join("");
+  $("preset").value = selected || names[0];
+}
+function syncScreenControls() {
+  const q = state.query;
+  $("signal").value = q.s; $("order").value = q.o.replace(/^-/, ""); $("dir").value = q.o.startsWith("-") ? "Desc" : "Asc";
+  $("min-price").value = q.minPrice; $("min-avgvol").value = q.minAvgVol; $("tickers").value = q.t;
+}
+
+async function runScreen() {
+  const q = state.query, dir = $("dir").value === "Desc" ? "-" : "";
+  q.o = $("order").value ? dir + $("order").value : "";
+  const f = [q.minPrice && `sh_price_o${q.minPrice}`, q.minAvgVol && `sh_avgvol_o${q.minAvgVol}`].filter(Boolean).join(",");
+  const url = `api/screen?${new URLSearchParams({ s: q.s, f, o: q.o, t: q.t.trim(), n: "200" })}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(res.status);
+    const body = await res.json();
+    state.rows = new Map(body.rows.map((r) => [r[0], Object.fromEntries(body.cols.map((c, i) => [c, r[i]]))]));
+    state.tickers = [...state.rows.keys()]; state.total = body.total; state.screenError = "";
+    state.asofNote = `snapshot ${body.asof}${body.ahBuilt ? ` · AH ${body.ahBuilt.slice(11, 16)}Z` : ""} · ${res.headers.get("Server-Timing") || ""}`;
+  } catch (err) {
+    state.tickers = []; state.rows = new Map(); state.total = 0; state.screenError = `screen failed: ${err.message}`;
+  }
+  render();
+}
+
 // ---------- data ----------
 async function loadBars(symbols) {
   const need = symbols.filter((s) => !barsCache.has(`${s}|${state.tf}`));
@@ -102,7 +153,7 @@ function pageSymbols() {
 }
 
 async function render() {
-  const total = state.tickers.length, pages = Math.max(1, Math.ceil(total / state.perPage));
+  const total = state.total, pages = Math.max(1, Math.ceil(state.tickers.length / state.perPage));
   $("pager").innerHTML = `<button class="icon-btn" id="prev" aria-label="Previous">&lsaquo;</button>#${state.page + 1} / ${total} Total <button class="icon-btn" id="next" aria-label="Next">&rsaquo;</button>`;
   $("prev").onclick = () => { state.page = Math.max(0, state.page - 1); render(); };
   $("next").onclick = () => { state.page = Math.min(pages - 1, state.page + 1); render(); };
@@ -111,7 +162,9 @@ async function render() {
   observer.disconnect(); cells.clear();
   $("grid").style.setProperty("--rows", Math.ceil(state.perPage / 2));
   $("grid").replaceChildren(...symbols.map(makeCell));
-  history.replaceState(null, "", `?t=${state.tickers.join(",")}&tf=${state.tf}`);
+  history.replaceState(null, "", `?tf=${state.tf}${state.query.t ? `&t=${encodeURIComponent(state.query.t)}` : ""}`);
+  if (!symbols.length) $("grid").innerHTML = `<div class="placeholder">${esc(state.screenError || "No results.")}</div>`;
+  $("status").textContent = state.asofNote;
   await loadBars(symbols);
   for (const s of symbols) { updateHeader(s); if (cells.get(s)?.visible) paint(s); }
 }
@@ -145,7 +198,9 @@ function updateHeader(sym) {
   if (entry?.error) meta.textContent = `error ${entry.error}`;
   else if (!s) meta.textContent = "no data";
   else {
-    meta.innerHTML = `${s.last.toFixed(2)} <span class="${s.change >= 0 ? "up" : "down"}">${s.change >= 0 ? "+" : ""}${s.change.toFixed(2)}%</span> · vol ${compact(s.vol)}`;
+    const row = state.rows.get(sym), ah = row?.ahChange;
+    const ahText = ah == null ? "" : ` · <span class="${ah >= 0 ? "up" : "down"}">AH ${ah >= 0 ? "+" : ""}${ah.toFixed(2)}%</span>`;
+    meta.innerHTML = `${s.last.toFixed(2)} <span class="${s.change >= 0 ? "up" : "down"}">${s.change >= 0 ? "+" : ""}${s.change.toFixed(2)}%</span>${ahText} · vol ${compact(s.vol)}`;
     meta.title = `${sym}: last ${s.last.toFixed(4)}, ${s.change.toFixed(2)}% over the window, volume ${s.vol.toLocaleString()} (${s.src})`;
   }
 }
@@ -167,8 +222,14 @@ function moveCrosshair(e, sym) {
 function showTip(e, sym) {
   const s = summary(sym), tip = $("tip");
   if (!s) { tip.hidden = true; return; }
-  // Company, sector, country and market cap appear once the Phase 2 snapshot provides them.
-  tip.innerHTML = `<b>${sym}</b><br>Last ${s.last.toFixed(2)} (${s.change.toFixed(2)}%)<br>Volume ${s.vol.toLocaleString()}`;
+  // Sector, industry, country and market cap have no free source yet; shown once the snapshot carries them.
+  const row = state.rows.get(sym) || {};
+  const lines = [`<b>${sym}</b> ${esc(row.company || "")}`, row.exchange && `Exchange ${esc(row.exchange)}`,
+    `Last ${s.last.toFixed(2)} (${s.change.toFixed(2)}% over the window)`, row.regClose != null && `Regular close ${row.regClose}`,
+    row.ahChange != null && `After hours ${row.ahChange.toFixed(2)}% on ${compact(row.ahVolume)} shares`,
+    `Volume ${s.vol.toLocaleString()}`, row.avgVolume != null && `Avg volume ${compact(row.avgVolume)}`];
+  tip.innerHTML = lines.filter(Boolean).join("<br>");
+  tip.title = "";
   tip.hidden = false;
   tip.style.left = `${Math.min(e.clientX + 14, innerWidth - 220)}px`; tip.style.top = `${e.clientY + 14}px`;
 }
@@ -200,4 +261,4 @@ const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt
 
 fetch("changelog.json").then((r) => r.json()).then((l) => ($("version").textContent = `Version ${l.versions[l.versions.length - 1].version}`)).catch(() => {});
 buildChrome();
-render();
+runScreen();

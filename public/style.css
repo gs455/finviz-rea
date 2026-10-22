@@ -43,3 +43,4 @@ label { color:var(--muted); display:inline-flex; gap:4px; align-items:center; }
 .ver { margin-bottom:12px; } .ver h4 { margin:0 0 4px; } .ver li { margin:2px 0; }
 .placeholder { padding:40px; color:var(--muted); text-align:center; }
 @media (max-width:700px) { .grid { grid-template-columns:1fr; } }
+.num { width:64px; }
