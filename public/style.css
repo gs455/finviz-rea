@@ -1,0 +1,43 @@
+:root { --bg:#fff; --panel:#f5f6f8; --text:#1b1f27; --muted:#6b7380; --line:#d8dce3; --accent:#2563eb; --up:#168a4a; --down:#d03a3a; --grid:#e9ecf1; }
+[data-theme="dark"] { --bg:#12151b; --panel:#1b2029; --text:#e4e8ef; --muted:#8d97a6; --line:#2c3340; --accent:#6ea0ff; --up:#35c27a; --down:#f06a6a; --grid:#222936; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:13px/1.35 system-ui, sans-serif; }
+.topline { display:flex; align-items:center; gap:6px; padding:4px 8px; border-bottom:1px solid var(--line); position:relative; }
+.tabs { display:flex; gap:2px; flex:1; overflow-x:auto; scrollbar-width:none; }
+.tab { padding:4px 9px; border-radius:4px; color:var(--muted); background:none; border:0; cursor:pointer; white-space:nowrap; }
+.tab.active { color:var(--text); background:var(--panel); font-weight:600; }
+.tab:hover { color:var(--text); }
+.icon-btn { background:none; border:1px solid transparent; color:var(--text); font-size:17px; width:30px; height:28px; border-radius:4px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+.icon-btn:hover { background:var(--panel); border-color:var(--line); }
+.menu { position:absolute; right:8px; top:36px; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:4px; z-index:20; min-width:160px; box-shadow:0 4px 14px #0003; }
+.menu button { display:block; width:100%; text-align:left; background:none; border:0; color:var(--text); padding:6px 8px; cursor:pointer; border-radius:4px; }
+.menu button:hover { background:var(--panel); }
+.menu-version { color:var(--muted); padding:6px 8px 2px; font-size:11px; border-top:1px solid var(--line); margin-top:4px; }
+.filterbar, .controls { display:flex; align-items:center; gap:8px; padding:5px 8px; flex-wrap:wrap; }
+.filterbar { background:var(--panel); border-bottom:1px solid var(--line); }
+select, input, .btn { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:4px; padding:3px 6px; font:inherit; }
+.btn { cursor:pointer; } .btn:hover { border-color:var(--accent); }
+.tickers { width:260px; }
+label { color:var(--muted); display:inline-flex; gap:4px; align-items:center; }
+.seg { display:inline-flex; border:1px solid var(--line); border-radius:4px; overflow:hidden; }
+.seg button { border:0; background:var(--bg); color:var(--text); padding:3px 8px; cursor:pointer; border-right:1px solid var(--line); }
+.seg button:last-child { border-right:0; }
+.seg button.active { background:var(--accent); color:#fff; }
+.grow { flex:1; } .status { color:var(--muted); font-size:11px; } .pager { font-weight:600; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:6px 8px; }
+.cell { border:1px solid var(--line); border-radius:4px; background:var(--bg); min-height:220px; display:flex; flex-direction:column; min-width:0; }
+.cell-head { display:flex; gap:8px; padding:3px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-bottom:1px solid var(--line); }
+.cell-head .sym { font-weight:700; cursor:pointer; color:var(--accent); }
+.cell-head .meta { color:var(--muted); overflow:hidden; text-overflow:ellipsis; }
+.cell canvas { width:100%; flex:1; min-height:190px; display:block; }
+.up { color:var(--up); } .down { color:var(--down); }
+.tip { position:fixed; z-index:30; pointer-events:none; background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:4px 7px; max-width:320px; box-shadow:0 2px 8px #0003; font-size:12px; }
+.modal { position:fixed; inset:0; background:#0006; z-index:40; display:flex; align-items:center; justify-content:center; }
+.modal[hidden], .menu[hidden], .tip[hidden] { display:none; }
+.modal-card { background:var(--bg); border:1px solid var(--line); border-radius:8px; width:min(900px, 94vw); max-height:86vh; display:flex; flex-direction:column; }
+.modal-head { display:flex; gap:10px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line); }
+.modal-head span { flex:1; } .modal-body { overflow:auto; padding:10px 14px; }
+.modal-body pre { margin:0; font:11px/1.35 ui-monospace, monospace; white-space:pre-wrap; background:var(--panel); padding:8px; border-radius:4px; }
+.ver { margin-bottom:12px; } .ver h4 { margin:0 0 4px; } .ver li { margin:2px 0; }
+.placeholder { padding:40px; color:var(--muted); text-align:center; }
+@media (max-width:700px) { .grid { grid-template-columns:1fr; } }

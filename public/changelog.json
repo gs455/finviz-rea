@@ -1,0 +1,22 @@
+{
+  "versions": [
+    {
+      "version": "0.1.0",
+      "date": "2026-10-22",
+      "brief": [
+        "Charts tab: 2-column candlestick grid driven by the Tickers box",
+        "Timeframes 1M to M, Tech. Analysis cycle, light/dark toggle, changelog and code history"
+      ],
+      "full": [
+        "Session calendar (pre 04:00, regular 09:30-16:00, post to 20:00 ET) with tests",
+        "Alpaca SIP bars (15-min delayed) as primary source, Yahoo chart as fallback",
+        "/api/bars with batch caps (8 tickers, 3,200 bars), stale-while-revalidate on the Cache API and Server-Timing",
+        "Readable canvas renderer with session shading, volume, price axis and overlays",
+        "Tech. Analysis cycles none / support-resistance / trend lines",
+        "Lazy rendering through IntersectionObserver; pager shows #page / N Total",
+        "All 15 tabs shown; only Charts is built, the rest are placeholders",
+        "Hub gate through the X-Hub-Proxy-Key header; direct visits go to the hub"
+      ]
+    }
+  ]
+}
