@@ -63,6 +63,21 @@
         "AH labels read AH after today's close, otherwise AH (Oct 21); the Top Gainers/Losers AH signal names follow the same rule",
         "Theme is read from and written to localStorage armanai-theme (light default)"
       ]
+    },
+    {
+      "version": "0.5.0",
+      "date": "2026-10-22",
+      "brief": [
+        "Overview tab: sortable one-line table (No., Ticker, Company, Sector, Industry, Country, Market Cap, P/E, Price, Change, Volume) with pager",
+        "Header clicks stay in sync with Order by and Asc/Desc; ticker click opens it in Charts"
+      ],
+      "full": [
+        "Overview uses the same top bar, Filters panel and Signal as Charts through /api/screen, 20 rows per page (r and n parameters)",
+        "URL: v=111 selects Overview (Finviz view id), p is the page; Charts stays the default view",
+        "Sector, industry, country, market cap and P/E show - until a free data source is added",
+        "With an after-hours signal the Change column shows and sorts by the after-hours change",
+        "Company added to the Order by list; long text is cut with an ellipsis and shown in full on hover"
+      ]
     }
   ]
 }

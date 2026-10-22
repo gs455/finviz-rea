@@ -1,6 +1,7 @@
 // Charts tab: top bar, controls, paged 2-column grid with lazy canvas rendering.
 import { drawChart, drawCrosshair } from "./chart.js";
 import { nyInfo } from "./session.js";
+import { renderOverview, OVERVIEW_PAGE_SIZE } from "./overview.js";
 
 const TABS = ["Overview", "Valuation", "Financial", "Ownership", "Performance", "Technical", "Custom", "Charts",
   "Tickers", "Basic", "TA", "News", "Snapshot", "Maps", "Stats"];
@@ -33,9 +34,10 @@ function filterString(q) {
 }
 const state = {
   tickers: [], rows: new Map(), total: 0, asofNote: "", screenError: "",
-  query: readQueryFromUrl(),
+  query: readQueryFromUrl(), pageRows: [],
   ahAsof: "",
   tf: TIMEFRAMES.includes(params.get("tf")) ? params.get("tf") : "3M",
+  view: params.get("v") === "111" ? "Overview" : "Charts",
   overlay: 0, page: 0, perPage: 8, refreshTimer: null,
 };
 const barsCache = new Map(); // "SYM|tf" -> { bars, at, src }
@@ -49,18 +51,12 @@ const observer = new IntersectionObserver((entries) => {
 
 // ---------- chrome ----------
 function buildChrome() {
-  $("tabs").innerHTML = TABS.map((t) => `<button class="tab${t === "Charts" ? " active" : ""}" data-tab="${t}">${t}</button>`).join("");
+  $("tabs").innerHTML = TABS.map((t) => `<button class="tab" data-tab="${t}">${t}</button>`).join("");
   $("tabs").onclick = (e) => {
-    const tab = e.target.dataset.tab; if (!tab) return;
-    document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b === e.target));
-    const isCharts = tab === "Charts";
-    $("grid").hidden = !isCharts;
-    document.querySelector(".controls").hidden = !isCharts;
-    document.querySelector(".filterbar").hidden = !isCharts;
-    let ph = $("placeholder");
-    if (!ph) { ph = document.createElement("div"); ph.id = "placeholder"; ph.className = "placeholder"; $("grid").after(ph); }
-    ph.hidden = isCharts; ph.textContent = `${tab} tab: coming in a later phase.`;
+    const tab = e.target.dataset.tab;
+    if (tab && tab !== state.view) { state.view = tab; state.page = 0; syncView(); if (tab === "Charts" || tab === "Overview") runScreen(); }
   };
+  syncView();
   $("tf").innerHTML = TIMEFRAMES.map((t) => `<button data-tf="${t}">${t}</button>`).join("");
   $("tf").onclick = (e) => { if (e.target.dataset.tf) { state.tf = e.target.dataset.tf; syncControls(); render(); } };
   $("ta-btn").onclick = () => { state.overlay = (state.overlay + 1) % OVERLAYS.length; syncControls(); redrawAll(); };
@@ -82,6 +78,19 @@ function buildChrome() {
   syncControls();
 }
 
+/** Shows the chrome of the active tab: Overview table, Charts grid, or a placeholder for the other tabs. */
+function syncView() {
+  const isCharts = state.view === "Charts", isOverview = state.view === "Overview";
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === state.view));
+  $("grid").hidden = !isCharts; $("overview").hidden = !isOverview;
+  document.querySelector(".controls").hidden = !isCharts;
+  document.querySelector(".filterbar").hidden = !(isCharts || isOverview);
+  $("placeholder").hidden = isCharts || isOverview;
+  $("placeholder").textContent = `${state.view} tab: coming in a later phase.`;
+  document.title = `Finviz REA · ${state.view}`;
+  if (!isCharts && !isOverview) writeUrl();
+}
+
 function setTheme(t) {
   document.documentElement.dataset.theme = t;
   localStorage.setItem("armanai-theme", t);
@@ -99,7 +108,7 @@ const DEFAULT_PRESETS = { "Top Gainers AH (price>$1, avg vol>50K)": { ...DEFAULT
 const loadPresets = () => ({ ...DEFAULT_PRESETS, ...JSON.parse(localStorage.getItem("fv-presets") || "{}") });
 const SIGNALS = [["", "None (all stocks)"], ["ta_topgainers_ah", "Top Gainers AH"], ["ta_toplosers_ah", "Top Losers AH"],
   ["ta_topgainers", "Top Gainers"], ["ta_toplosers", "Top Losers"], ["ta_mostactive", "Most Active"]];
-const ORDERS = [["", "None"], ["ticker", "Ticker"], ["price", "Price"], ["change", "Change"], ["ahChange", "AH change"], ["volume", "Volume"], ["avgVolume", "Avg volume"]];
+const ORDERS = [["", "None"], ["ticker", "Ticker"], ["company", "Company"], ["price", "Price"], ["change", "Change"], ["ahChange", "AH change"], ["volume", "Volume"], ["avgVolume", "Avg volume"]];
 
 /** The after-hours session the AH numbers belong to: "AH" once today's session closed, else "AH (Oct 21)". */
 function ahLabel() {
@@ -130,6 +139,7 @@ function buildScreenControls() {
     t: $("tickers").value }); state.page = 0; runScreen(); };
   for (const id of ["signal", "order", "min-price", "min-avgvol", "tickers"]) $(id).onchange = read;
   $("dir").onchange = read;
+  if (state.view === "Overview" && Number(params.get("p")) > 1) state.page = Number(params.get("p")) - 1;
   buildFiltersPanel(apply);
   syncScreenControls();
 }
@@ -175,19 +185,40 @@ function buildFiltersPanel(apply) {
 async function runScreen() {
   const q = state.query, dir = $("dir").value === "Desc" ? "-" : "";
   q.o = $("order").value ? dir + $("order").value : "";
-  const url = `api/screen?${new URLSearchParams({ s: q.s, f: filterString(q), o: q.o, t: q.t.trim(), n: "200" })}`;
+  const overview = state.view === "Overview";
+  const paging = overview ? { n: String(OVERVIEW_PAGE_SIZE), r: String(state.page * OVERVIEW_PAGE_SIZE + 1) } : { n: "200" };
+  const url = `api/screen?${new URLSearchParams({ s: q.s, f: filterString(q), o: q.o, t: q.t.trim(), ...paging })}`;
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(res.status);
     const body = await res.json();
-    state.rows = new Map(body.rows.map((r) => [r[0], Object.fromEntries(body.cols.map((c, i) => [c, r[i]]))]));
+    const objects = body.rows.map((r) => Object.fromEntries(body.cols.map((c, i) => [c, r[i]])));
+    state.rows = new Map(objects.map((r) => [r.ticker, r]));
+    state.pageRows = objects;
     state.tickers = [...state.rows.keys()]; state.total = body.total; state.screenError = ""; state.ahAsof = body.ahAsof || "";
     fillSignals();
     state.asofNote = `snapshot ${body.asof}${body.ahBuilt ? ` · AH ${body.ahBuilt.slice(11, 16)}Z` : ""} · ${res.headers.get("Server-Timing") || ""}`;
   } catch (err) {
-    state.tickers = []; state.rows = new Map(); state.total = 0; state.screenError = `screen failed: ${err.message}`;
+    state.tickers = []; state.rows = new Map(); state.pageRows = []; state.total = 0; state.screenError = `screen failed: ${err.message}`;
   }
-  render();
+  if (overview) showOverview(); else render();
+}
+
+/** Overview: rows of the current server page; header clicks and the pager go back through runScreen. */
+function showOverview() {
+  const q = state.query, desc = q.o.startsWith("-");
+  renderOverview($("overview"), {
+    rows: state.pageRows, total: state.total, first: state.page * OVERVIEW_PAGE_SIZE + 1, error: state.screenError, note: state.asofNote,
+    ah: q.s.endsWith("_ah"), sortKey: q.o.replace(/^-/, ""), desc,
+    onSort: (key) => {
+      const same = q.o.replace(/^-/, "") === key;
+      q.o = same && !desc ? `-${key}` : key; // same column toggles asc/desc
+      state.page = 0; syncScreenControls(); runScreen();
+    },
+    onPage: (page) => { state.page = page; runScreen(); },
+    onTicker: (sym) => { q.t = sym; state.view = "Charts"; state.page = 0; syncView(); syncScreenControls(); runScreen(); },
+  });
+  writeUrl();
 }
 
 // ---------- data ----------
@@ -226,13 +257,19 @@ async function render() {
   observer.disconnect(); cells.clear();
   $("grid").style.setProperty("--rows", Math.ceil(state.perPage / 2));
   $("grid").replaceChildren(...symbols.map(makeCell));
-  const urlParams = new URLSearchParams({ tf: state.tf });
-  for (const [key, name] of Object.entries(URL_KEYS)) if (state.query[key] !== DEFAULT_QUERY[key]) urlParams.set(name, state.query[key]);
-  history.replaceState(null, "", `?${urlParams}`);
+  writeUrl();
   if (!symbols.length) $("grid").innerHTML = `<div class="placeholder">${esc(state.screenError || "No results.")}</div>`;
   $("status").textContent = state.asofNote;
   await loadBars(symbols);
   for (const s of symbols) { updateHeader(s); if (cells.get(s)?.visible) paint(s); }
+}
+
+/** Mirrors the view, timeframe, overview page and non-default query fields into the address bar (v follows Finviz: 111 Overview, 211 Charts). */
+function writeUrl() {
+  const urlParams = new URLSearchParams({ tf: state.tf });
+  if (state.view === "Overview") { urlParams.set("v", "111"); if (state.page) urlParams.set("p", String(state.page + 1)); }
+  for (const [key, name] of Object.entries(URL_KEYS)) if (state.query[key] !== DEFAULT_QUERY[key]) urlParams.set(name, state.query[key]);
+  history.replaceState(null, "", `?${urlParams}`);
 }
 
 function makeCell(sym) {
