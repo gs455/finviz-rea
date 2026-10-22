@@ -29,9 +29,6 @@ Read this first in every run. Plan: `/workspace/rea/finviz-screener/plan-v2/PLAN
 - Never re-dispatch a workflow without fixing the failure first and verifying locally.
 - CI test command is `node --test test/*.test.mjs` (a bare `test/` dir fails on Node 22 with MODULE_NOT_FOUND). `npm test` does the same.
 
-## BLOCKERS (need Arman)
-None. (Alpaca keys arrived; Pages write works.)
-
 ## Next run (run 3)
 1. Browser-check and fix the UI (see gaps), then add hover crosshair + canvas pool.
 2. Probe STALE path; force the Yahoo fallback once (e.g. temporary `?src=yahoo` debug param or unset key in preview) and record.
@@ -50,7 +47,22 @@ None. (Alpaca keys arrived; Pages write works.)
 - 2026-10-22 run 4: CI fix (explicit test glob in both workflows, package.json added). Local Node 22: 11/11 tests pass, nightly dry run (--limit 300, --out) OK: 291 rows, 55,664 bytes. R2 bucket finviz-rea-data exists; CLOUDFLARE_R2_TOKEN secret is set.
 - 2026-10-22 run 4 (cont.): Deploy run 39728083251 passed. Nightly run 39728131105 passed (2m38s): asof 2026-10-21, 11,115 rows of 11,279 universe symbols, snapshot 2,112,192 bytes, 340 Alpaca calls, 2.95M bars, 145 s, no warnings. R2 finviz-rea-data holds snapshot/latest.bin, snapshot/meta.json, snapshot/prev/2026-10-21.bin.
 
-## Next run (run 5)
-1. Read snapshot from R2 in a Pages Function (R2 binding on fv-rea: needs adding via Pages API/settings; check) and expose /api/screen (filter + order, Top Gainers AH price>1, avgVol>50K) driving the Charts grid.
-2. Wire presets/Order/Signal in the UI; then Overview tab. No hub wiring until Phase 2 works end to end.
-3. Remaining run-3 gaps: browser check of UI, STALE path, Yahoo fallback force.
+## Run 5 (2026-10-22): Phase 2 end to end = PASS
+Evidence: `shots/c_phase2.png` (fv-rea.pages.dev with proxy header, headless Chrome via CDP): default preset Top Gainers AH, price>1, avg vol>50K, `#1 / 200 Total`, grid STAK (AH +59.00%, matches the reference screenshot), HTCO, NCPL, QSU, USGO, SNAL, AKAN, CRDF with candles/volume.
+- **R2 binding** `DATA` -> finviz-rea-data added to fv-rea production + preview via Pages API (PATCH deployment_configs.r2_buckets); took effect on the next deploy.
+- **/api/screen** (`functions/api/screen.js`, `functions/lib/{screen,store}.js`): params `s` signal, `f` filters (`sh_price_o|u`, `sh_avgvol` in K, `sh_curvol`, `ta_change`; `c` prefix accepted; unknown go to `ignored`), `o` order (`-` desc), `t` tickers, `r` first row, `n` page size (max 200). Signals: ta_topgainers_ah / ta_toplosers_ah / ta_topgainers / ta_toplosers / ta_mostactive; signal lists capped at 200 (so "Total" shows 200 when more match; Finviz caps similarly). Snapshot and AH objects decoded once per isolate, revalidated by `head()` etag at most every 60 s (R2 Class B only, no KV).
+- **CPU** on the real 2.1 MB / 11,115-row snapshot, Node 22: header+typed-array decode 5 ms (once per isolate); screen warm median 2.1 ms (p95 4.7) for the AH preset, 1.4 ms no-signal filter, 4.7 ms ordering ~8k rows by change; first call in a fresh process ~15 ms (JIT + symbol index). Live: 6 calls incl. cold, all 200, no CPU-limit errors; total 219-453 ms, dominated by R2 I/O (`Server-Timing store;dur`; `screen;dur` reads 0.0 because Workers' clock does not advance during CPU). Risk to watch: cold-isolate CPU near 10 ms; fallback = Cache API on the response keyed by etags, or precompute signal lists in the job.
+- **AH job** `jobs/ah.mjs` + `.github/workflows/ah.yml` (crons 21:30, 23:00 UTC Mon-Fri, 01:30 UTC Tue-Sat; manual dispatch takes `date`). 15Min SIP bars from 16:00 ET to min(20:00 ET, now-16 min), 100 symbols per call (113 calls), then daily bars only for symbols with AH trades (regular close; QS = 3.98 matches the reference). Output `ah/latest.bin` (SNP1 format, 7,251 symbols, 193,392 bytes) + `ah/meta.json`. Local dry run (full universe, `--date 2026-10-21`): 187 calls, 75 s. Dispatched ONCE (run 39730891666): success, identical numbers. Alpaca calls: 187 at ~150/min.
+- **Free limits added**: R2 Class A: +2 PUT per AH run (6 per weekday), nightly 3 PUT + prune deletes; Class B: head()s from the Function (about 2 per minute per active isolate), a few GETs per new snapshot per isolate. Actions minutes: AH run ~2 min x 3/weekday + nightly ~3 min; the repo is public so Actions minutes are free. Functions: unchanged order of magnitude (grid = 1 screen call + 8-ish bars calls per page).
+- **UI**: Signal, Order by + Asc/Desc, Tickers box, Price > and Avg vol > (K) inputs, preset dropdown + Save (localStorage `fv-presets`; default preset is built in), `#page / N Total` from results, header shows AH change, tooltip has company, exchange, regular close, AH %, avg volume. Sector/industry/country/market cap are NOT available: no free source in the pipeline yet (Nasdaq lists carry none; candidates: SEC company tickers/SIC codes, Finnhub profile) -> open item.
+- Notes: the AH view's "price" filter applies to the AH price; symbols not in the snapshot (no avg vol) are excluded when an avg-vol filter is set. A 16:00 bar with a few late prints counts as AH volume (STAK-like 0% rows are possible; consider requiring bars from 16:00 on with n>1 later). The status line shows the bars call's timing; the screen call's `Server-Timing` is overwritten.
+- Tests: Node 22 14/14 pass (new `test/screen.test.mjs`).
+
+## Next run (run 6)
+1. Remaining run-3 UI gaps: Filters panel (descriptive/fundamental/technical from a catalog), layout/refresh polish, STALE-path probe and forced Yahoo check on `/api/bars` (`?src=yahoo` exists), canvas pool.
+2. Sector/country/market-cap source (see above); Overview tab.
+3. **Hub wiring (card + worker edit in gs455/hub-sites; add `/finviz-rea` to APP_ORIGINS and APP_DERIVED_KEY_PREFIXES) since Phase 2 is PASS.** Only in the final wiring run, per decision 6.
+4. Watch the first scheduled AH run (21:30 UTC) and the nightly (02:30 UTC): confirm both succeed on the cron path.
+
+## BLOCKERS
+None.
