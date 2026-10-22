@@ -11,7 +11,7 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: node --test test/
+      - run: node --test test/*.test.mjs
       - run: node scripts/build_history.mjs
       - run: npx wrangler@latest pages deploy public --project-name fv-rea --branch main
         env:

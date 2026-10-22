@@ -23,6 +23,12 @@ Read this first in every run. Plan: `/workspace/rea/finviz-screener/plan-v2/PLAN
 - Actions deploy workflow untested. R2 bucket `finviz-rea-data` not created (Phase 2).
 - Stale-while-revalidate STALE branch live check.
 
+## STANDING RULES (added run 4)
+- Batch commits; one push per logical change.
+- Test locally under Node 22 (`npx -y node@22 --test test/*.test.mjs`, `scripts/secret_scan.sh`) before EVERY push.
+- Never re-dispatch a workflow without fixing the failure first and verifying locally.
+- CI test command is `node --test test/*.test.mjs` (a bare `test/` dir fails on Node 22 with MODULE_NOT_FOUND). `npm test` does the same.
+
 ## BLOCKERS (need Arman)
 None. (Alpaca keys arrived; Pages write works.)
 
@@ -41,3 +47,4 @@ None. (Alpaca keys arrived; Pages write works.)
 ## Log
 - 2026-10-21 run 1: plan update + Phase 0 (this file's first version).
 - 2026-10-22 run 2: Alpaca verified, repo + Pages project + secrets, Phase 1 v0.1.0 deployed (UI not yet browser-checked).
+- 2026-10-22 run 4: CI fix (explicit test glob in both workflows, package.json added). Local Node 22: 11/11 tests pass, nightly dry run (--limit 300, --out) OK: 291 rows, 55,664 bytes. R2 bucket finviz-rea-data exists; CLOUDFLARE_R2_TOKEN secret is set.
