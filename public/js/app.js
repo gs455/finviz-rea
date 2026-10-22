@@ -1,5 +1,5 @@
 // Charts tab: top bar, controls, paged 2-column grid with lazy canvas rendering.
-import { drawChart } from "./chart.js";
+import { drawChart, drawCrosshair } from "./chart.js";
 
 const TABS = ["Overview", "Valuation", "Financial", "Ownership", "Performance", "Technical", "Custom", "Charts",
   "Tickers", "Basic", "TA", "News", "Snapshot", "Maps", "Stats"];
@@ -109,6 +109,7 @@ async function render() {
 
   const symbols = pageSymbols();
   observer.disconnect(); cells.clear();
+  $("grid").style.setProperty("--rows", Math.ceil(state.perPage / 2));
   $("grid").replaceChildren(...symbols.map(makeCell));
   history.replaceState(null, "", `?t=${state.tickers.join(",")}&tf=${state.tf}`);
   await loadBars(symbols);
@@ -118,12 +119,12 @@ async function render() {
 function makeCell(sym) {
   const el = document.createElement("div");
   el.className = "cell"; el.dataset.sym = sym;
-  el.innerHTML = `<div class="cell-head"><span class="sym">${sym}</span><span class="meta">loading…</span></div><canvas></canvas>`;
-  const canvas = el.querySelector("canvas");
-  cells.set(sym, { el, canvas, visible: false });
+  el.innerHTML = `<div class="cell-head"><span class="sym">${sym}</span><span class="meta">loading…</span></div><div class="plot"><canvas></canvas><canvas class="xhair"></canvas></div>`;
+  const canvas = el.querySelector("canvas"), xhair = el.querySelector(".xhair");
+  cells.set(sym, { el, canvas, xhair, visible: false });
   observer.observe(el);
-  el.addEventListener("mousemove", (e) => showTip(e, sym));
-  el.addEventListener("mouseleave", () => ($("tip").hidden = true));
+  el.addEventListener("mousemove", (e) => { showTip(e, sym); moveCrosshair(e, sym); });
+  el.addEventListener("mouseleave", () => { $("tip").hidden = true; moveCrosshair(null, sym); });
   return el;
 }
 
@@ -155,6 +156,13 @@ function paint(sym) {
   cell.geometry = drawChart(cell.canvas, entry.bars, { overlay: OVERLAYS[state.overlay][0], intraday: !["D", "W", "M"].includes(state.tf) });
 }
 function redrawAll() { for (const s of cells.keys()) if (cells.get(s).visible) paint(s); }
+
+function moveCrosshair(e, sym) {
+  const cell = cells.get(sym), bars = barsCache.get(`${sym}|${state.tf}`)?.bars;
+  if (!cell || !bars) return;
+  const r = cell.xhair.getBoundingClientRect();
+  drawCrosshair(cell.xhair, cell.geometry, bars, e && { x: e.clientX - r.left, y: e.clientY - r.top }, { intraday: !["D", "W", "M"].includes(state.tf) });
+}
 
 function showTip(e, sym) {
   const s = summary(sym), tip = $("tip");

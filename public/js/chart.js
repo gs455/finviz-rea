@@ -49,7 +49,7 @@ export function drawChart(canvas, bars, { overlay = "none", intraday = true } = 
   for (let k = 0; k <= 4; k++) {
     const p = lo + ((hi - lo) * k) / 4, yy = y(p);
     g.strokeStyle = col.grid; g.beginPath(); g.moveTo(0, yy); g.lineTo(plotW, yy); g.stroke();
-    g.fillStyle = col.muted; g.fillText(p.toFixed(p < 10 ? 3 : 2), plotW + 4, yy);
+    g.fillStyle = col.muted; g.fillText(p.toFixed(p < 10 ? 3 : 2), plotW + 4, Math.min(Math.max(yy, 6), priceH - 6));
   }
 
   // Candles and volume.
@@ -89,5 +89,35 @@ export function drawChart(canvas, bars, { overlay = "none", intraday = true } = 
       lastLabelX = x(i);
     }
   }
-  return { slot, plotW };
+  return { slot, plotW, priceH, lo, hi, w, h, n };
+}
+
+/** Draw a crosshair plus price/time readout on the overlay canvas; pass null to clear it. */
+export function drawCrosshair(canvas, geo, bars, pos, { intraday = true } = {}) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  if (!geo || !pos || pos.x > geo.plotW || pos.y > h - TIME_H) return;
+  const col = themeColors();
+  const i = Math.min(geo.n - 1, Math.max(0, Math.floor(pos.x / geo.slot)));
+  const cx = i * geo.slot + geo.slot / 2;
+  g.strokeStyle = col.muted; g.lineWidth = 1; g.setLineDash([3, 3]);
+  g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx, h - TIME_H); g.moveTo(0, pos.y); g.lineTo(geo.plotW, pos.y); g.stroke();
+  g.setLineDash([]);
+  g.font = "10px system-ui, sans-serif"; g.textBaseline = "middle";
+  if (pos.y <= geo.priceH) {
+    const price = geo.hi - (pos.y / geo.priceH) * (geo.hi - geo.lo);
+    g.fillStyle = col.text; g.fillRect(geo.plotW, pos.y - 7, AXIS_W, 14);
+    g.fillStyle = col.bg; g.textAlign = "left"; g.fillText(price.toFixed(price < 10 ? 3 : 2), geo.plotW + 4, pos.y);
+  }
+  const d = new Date(bars.t[i] * 1000);
+  const label = intraday ? d.toLocaleString("en-US", { timeZone: "America/New_York", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+                         : d.toISOString().slice(0, 10);
+  g.textAlign = "center"; const tw = g.measureText(label).width + 8;
+  const lx = Math.min(Math.max(cx, tw / 2), geo.plotW - tw / 2);
+  g.fillStyle = col.text; g.fillRect(lx - tw / 2, h - TIME_H, tw, TIME_H);
+  g.fillStyle = col.bg; g.textBaseline = "middle"; g.fillText(label, lx, h - TIME_H / 2);
 }
