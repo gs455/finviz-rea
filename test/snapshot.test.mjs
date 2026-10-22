@@ -20,7 +20,7 @@ test("atr of constant ranges equals the range", () => {
 });
 
 test("perf is percent change over n sessions", () => {
-  assert.equal(perf([100, 110, 121], 2), 21);
+  assert.ok(Math.abs(perf([100, 110, 121], 2) - 21) < 1e-9);
 });
 
 test("snapshot round-trips with NaN and 4-byte alignment", () => {
