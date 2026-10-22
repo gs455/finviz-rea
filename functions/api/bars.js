@@ -29,7 +29,8 @@ export async function onRequestGet(ctx) {
     const now = Math.floor(Date.now() / 1000);
     let src = "alpaca", bars;
     try {
-      if (!env.ALPACA_API_KEY_ID) throw new Error("no alpaca key");
+      // Debug: ?src=yahoo forces the fallback (only reachable through the hub gate).
+      if (!env.ALPACA_API_KEY_ID || url.searchParams.get("src") === "yahoo") throw new Error("alpaca skipped");
       bars = await fetchAlpaca(symbols, tf, env, now);
     } catch (e) {
       src = "yahoo";
