@@ -67,3 +67,4 @@ label { color:var(--muted); display:inline-flex; gap:4px; align-items:center; }
 .ov-table .empty { text-align:center; color:var(--muted); padding:30px; }
 .icon-btn:disabled { opacity:.35; cursor:default; }
 .placeholder[hidden], .overview[hidden], .grid[hidden] { display:none; }
+.controls[hidden], .filterbar[hidden] { display:none; }
