@@ -11,12 +11,12 @@ const COLUMNS = [
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const dash = "-";
 
-function cellText(row, field, ah) {
+function cellText(row, field) {
   const v = row[field];
   if (v == null || v === "") return { text: dash };
   if (field === "price") return { text: v.toFixed(2) };
   if (field === "volume") return { text: Math.round(v).toLocaleString("en-US") };
-  if (field === "change") return { text: `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, cls: v >= 0 ? "up" : "down" };
+  if (field === "change" || field === "ahChange") return { text: `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, cls: v >= 0 ? "up" : "down" };
   if (typeof v === "number") return { text: v.toLocaleString("en-US") };
   return { text: v };
 }
@@ -36,7 +36,7 @@ export function renderOverview(root, ctx) {
   }).join("");
   const body = ctx.rows.map((row, i) => `<tr>${COLUMNS.map(([, f, kind]) => {
     if (!f) return `<td class="num">${ctx.first + i}</td>`;
-    const { text, cls } = cellText(row, field(f), ctx.ah);
+    const { text, cls } = cellText(row, field(f));
     const inner = f === "ticker" ? `<a href="#" class="tk" data-sym="${esc(text)}">${esc(text)}</a>` : esc(text);
     return `<td class="${kind}${cls ? ` ${cls}` : ""}" title="${esc(text)}">${inner}</td>`;
   }).join("")}</tr>`).join("");
